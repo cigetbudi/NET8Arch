@@ -1,6 +1,8 @@
 using Core.Interfaces;
 using Infrastructure.Repositories;
 using Core.Entities;
+using API.Utilities;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,5 +54,56 @@ app.MapDelete("/todos/{id}", async (int id, ITodoRepository repository) =>
     await repository.DeleteTodoAsync(id);
     return Results.NoContent();
 });
+
+app.MapGet("/products", async (IProductRepository repository) => await repository.GetAllProductsAsync());
+
+app.MapGet("/products/{id}", async (int id, IProductRepository repository) =>
+{
+    var item = await repository.GetProductByIdAsync(id);
+    return item is not null ? Results.Ok(item) : Results.NotFound();
+});
+
+app.MapPost("/products", async (Product item, IProductRepository repository) =>
+{
+    var createdItem = await repository.AddProductAsync(item);
+    return Results.Created($"/products/{createdItem.Id}", createdItem);
+});
+
+app.MapPut("/products/{id}", async (int id, Product updatedItem, IProductRepository repository) =>
+{
+    var item = await repository.GetProductByIdAsync(id);
+    if (item is null) return Results.NotFound();
+
+    item.Name = updatedItem.Name;
+    item.Price = updatedItem.Price;
+
+    await repository.UpdateProductAsync(item);
+    return Results.NoContent();
+});
+
+app.MapDelete("/products/{id}", async (int id, IProductRepository repository) =>
+{
+    var item = await repository.GetProductByIdAsync(id);
+    if (item is null) return Results.NotFound();
+
+    await repository.DeleteProductAsync(id);
+    return Results.NoContent();
+});
+
+app.MapGet("/proxy", async () =>
+{
+    string url = "https://catfact.ninja/fact";
+    var result = await Utility.MakeHttpRequest(url, HttpMethod.Get);
+    return Results.Ok(result);
+});
+
+
+// Endpoint to convert string to Base64
+app.MapPost("/convert-to-base64", (InputModel model) =>
+{
+    string base64 = Utility.ConvertStringToBase64(model.Input);
+    return Results.Ok(base64);
+});
+
 
 app.Run();

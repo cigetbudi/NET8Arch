@@ -2,9 +2,9 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-namespace API.Utilities
+namespace API.Helpers
 {
-    public static class Utility
+    public static class Helper
     {
         private static readonly HttpClient client = new HttpClient();
 

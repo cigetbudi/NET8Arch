@@ -8,7 +8,7 @@ namespace API.Helpers
     {
         private static readonly HttpClient client = new HttpClient();
 
-        public static async Task<string> MakeHttpRequest(string url, HttpMethod method, HttpContent content = null)
+        public static async Task<string> MakeHttpRequest(string url, HttpMethod method, HttpContent? content = null)
         {
             using (var request = new HttpRequestMessage(method, url))
             {

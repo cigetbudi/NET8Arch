@@ -16,7 +16,7 @@ var configuration = builder.Configuration;
 
 // JWT configuration
 var jwtSettings = configuration.GetSection("JwtSettings");
-var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
+var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"] ?? throw new ArgumentNullException("SecretKey", "SecretKey cannot be null or empty."));
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(options =>
 {
@@ -37,8 +37,14 @@ builder.Services.AddAuthentication(options =>
 });
 
 // DI Repositories
-builder.Services.AddScoped<ITodoRepository>(provider => new TodoRepository(configuration.GetConnectionString("MSSQLConn")));
-builder.Services.AddScoped<IProductRepository>(provider => new ProductRepository(configuration.GetConnectionString("PGSQLConn")));
+
+var mssqlConn = configuration.GetConnectionString("MSSQLConn")
+                ?? throw new ArgumentNullException("MSSQLConn", "Connection string cannot be null.");
+var pgsqlConn = configuration.GetConnectionString("PGSQLConn")
+                ?? throw new ArgumentNullException("PGSQLConn", "Connection string cannot be null.");
+
+builder.Services.AddScoped<ITodoRepository>(provider => new TodoRepository(mssqlConn));
+builder.Services.AddScoped<IProductRepository>(provider => new ProductRepository(pgsqlConn));
 
 var app = builder.Build();
 
@@ -57,7 +63,7 @@ app.MapPost("/login", (LoginReq request, IConfiguration configuration1, IConfigu
     if (request.Username == username && request.Password == password)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
+        var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"] ?? throw new ArgumentNullException("SecretKey", "SecretKey cannot be null or empty."));
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
@@ -87,13 +93,13 @@ app.MapGet("/todos/{id}", async (int id, ITodoRepository repository) =>
 {
     var item = await repository.GetTodoByIdAsync(id);
     return item is not null ? Results.Ok(item) : Results.NotFound();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapPost("/todos", async (TodoItem item, ITodoRepository repository) =>
 {
     var createdItem = await repository.AddTodoAsync(item);
     return Results.Created($"/todos/{createdItem.Id}", createdItem);
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapPut("/todos/{id}", async (int id, TodoItem updatedItem, ITodoRepository repository) =>
 {
@@ -105,7 +111,7 @@ app.MapPut("/todos/{id}", async (int id, TodoItem updatedItem, ITodoRepository r
 
     await repository.UpdateTodoAsync(item);
     return Results.NoContent();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapDelete("/todos/{id}", async (int id, ITodoRepository repository) =>
 {
@@ -114,21 +120,21 @@ app.MapDelete("/todos/{id}", async (int id, ITodoRepository repository) =>
 
     await repository.DeleteTodoAsync(id);
     return Results.NoContent();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
-app.MapGet("/products", async (IProductRepository repository) => await repository.GetAllProductsAsync()).RequireAuthorization;
+app.MapGet("/products", async (IProductRepository repository) => await repository.GetAllProductsAsync()).RequireAuthorization();
 
 app.MapGet("/products/{id}", async (int id, IProductRepository repository) =>
 {
     var item = await repository.GetProductByIdAsync(id);
     return item is not null ? Results.Ok(item) : Results.NotFound();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapPost("/products", async (Product item, IProductRepository repository) =>
 {
     var createdItem = await repository.AddProductAsync(item);
     return Results.Created($"/products/{createdItem.Id}", createdItem);
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapPut("/products/{id}", async (int id, Product updatedItem, IProductRepository repository) =>
 {
@@ -140,7 +146,7 @@ app.MapPut("/products/{id}", async (int id, Product updatedItem, IProductReposit
 
     await repository.UpdateProductAsync(item);
     return Results.NoContent();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapDelete("/products/{id}", async (int id, IProductRepository repository) =>
 {
@@ -149,14 +155,14 @@ app.MapDelete("/products/{id}", async (int id, IProductRepository repository) =>
 
     await repository.DeleteProductAsync(id);
     return Results.NoContent();
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 app.MapGet("/proxy", async () =>
 {
     string url = "https://catfact.ninja/fact";
     var result = await Helper.MakeHttpRequest(url, HttpMethod.Get);
     return Results.Ok(result);
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 
 // Endpoint to convert string to Base64
@@ -164,7 +170,7 @@ app.MapPost("/convert-to-base64", (InputModel model) =>
 {
     string base64 = Helper.ConvertStringToBase64(model.Input);
     return Results.Ok(base64);
-}).RequireAuthorization;
+}).RequireAuthorization();
 
 
 app.Run();

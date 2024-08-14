@@ -2,6 +2,11 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Core.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 namespace API.Helpers
 {
     public static class Helper
@@ -34,6 +39,36 @@ namespace API.Helpers
         {
             var bytes = Convert.FromBase64String(base64Input);
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        public static string GenerateJwtToken(LoginReq request, IConfiguration configuration)
+        {
+            var credentials = configuration.GetSection("Credentials");
+            var username = credentials["Username"];
+            var password = credentials["Password"];
+
+            if (request.Username != username || request.Password != password)
+                throw new UnauthorizedAccessException("Invalid credentials");
+
+            var jwtSettings = configuration.GetSection("JwtSettings");
+            var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]
+                ?? throw new ArgumentNullException("SecretKey", "SecretKey cannot be null or empty."));
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                new Claim(ClaimTypes.Name, request.Username)
+            }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = jwtSettings["Issuer"],
+                Audience = jwtSettings["Audience"]
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }

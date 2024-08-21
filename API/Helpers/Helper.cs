@@ -1,14 +1,10 @@
-using System;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using Core.Entities;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using FluentValidation.Results;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using FluentValidation;
-using FluentValidation.Results;
+using System.Text;
+
 namespace API.Helpers
 {
     public static class Helper

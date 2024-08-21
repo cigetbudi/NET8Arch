@@ -1,15 +1,14 @@
-using Core.Interfaces;
-using Infrastructure.Repositories;
-using Core.Entities;
-using API.Helpers;
 using API.Handlers;
+using API.Helpers;
 using API.Validators;
+using Core.Entities;
+using Core.Interfaces;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using FluentValidation;
-using FluentValidation.AspNetCore;
-
 
 var builder = WebApplication.CreateBuilder(args);
 

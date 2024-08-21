@@ -3,15 +3,25 @@ using Infrastructure.Repositories;
 using Core.Entities;
 using API.Helpers;
 using API.Handlers;
+using API.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add DI
 var configuration = builder.Configuration;
+
+// DI FluentValidation
+builder.Services.AddFluentValidationAutoValidation()
+                .AddFluentValidationClientsideAdapters();
+
+builder.Services.AddValidatorsFromAssemblyContaining<TodoItemValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ProductValidator>();
 
 // JWT configuration
 var jwtSettings = configuration.GetSection("JwtSettings");
@@ -53,7 +63,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Openned Endpoints
-app.MapPost("/login", async (LoginReq request, IConfiguration configuration) =>
+app.MapPost("/login", (LoginReq request, IConfiguration configuration) =>
 {
     try
     {
@@ -68,18 +78,19 @@ app.MapPost("/login", async (LoginReq request, IConfiguration configuration) =>
 
 // Secured Endpoints
 app.MapGet("/", () => "Hello World!").RequireAuthorization();
+
 // Todo Endpoints
 app.MapGet("/todos", async (ITodoRepository repository) => await TodoHandlers.GetAllTodosAsync(repository)).RequireAuthorization();
 app.MapGet("/todos/{id}", async (int id, ITodoRepository repository) => await TodoHandlers.GetTodoByIdAsync(id, repository)).RequireAuthorization();
-app.MapPost("/todos", async (TodoItem item, ITodoRepository repository) => await TodoHandlers.AddTodoAsync(item, repository)).RequireAuthorization();
-app.MapPut("/todos/{id}", async (int id, TodoItem updatedItem, ITodoRepository repository) => await TodoHandlers.UpdateTodoAsync(id, updatedItem, repository)).RequireAuthorization();
+app.MapPost("/todos", async (TodoItem item, ITodoRepository repository, IValidator<TodoItem> validator) => await TodoHandlers.AddTodoAsync(item, repository, validator)).RequireAuthorization();
+app.MapPut("/todos/{id}", async (int id, TodoItem updatedItem, ITodoRepository repository, IValidator<TodoItem> validator) => await TodoHandlers.UpdateTodoAsync(id, updatedItem, repository, validator)).RequireAuthorization();
 app.MapDelete("/todos/{id}", async (int id, ITodoRepository repository) => await TodoHandlers.DeleteTodoAsync(id, repository)).RequireAuthorization();
 
 // Product Endpoints
 app.MapGet("/products", async (IProductRepository repository) => await ProductHandlers.GetAllProductAsync(repository)).RequireAuthorization();
 app.MapGet("/products/{id}", async (int id, IProductRepository repository) => await ProductHandlers.GetProductByIdAsync(id, repository)).RequireAuthorization();
-app.MapPost("/products", async (Product item, IProductRepository repository) => await ProductHandlers.AddProductAsync(item, repository)).RequireAuthorization();
-app.MapPut("/products/{id}", async (int id, Product updatedItem, IProductRepository repository) => await ProductHandlers.UpdateProductAsync(id, updatedItem, repository)).RequireAuthorization();
+app.MapPost("/products", async (Product item, IProductRepository repository, IValidator<Product> validator) => await ProductHandlers.AddProductAsync(item, repository, validator)).RequireAuthorization();
+app.MapPut("/products/{id}", async (int id, Product updatedItem, IProductRepository repository, IValidator<Product> validator) => await ProductHandlers.UpdateProductAsync(id, updatedItem, repository, validator)).RequireAuthorization();
 app.MapDelete("/products/{id}", async (int id, IProductRepository repository) => await ProductHandlers.DeleteProductAsync(id, repository)).RequireAuthorization();
 
 app.MapGet("/proxy", async () =>

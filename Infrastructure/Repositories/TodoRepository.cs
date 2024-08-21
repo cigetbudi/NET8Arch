@@ -33,12 +33,14 @@ namespace Infrastructure.Repositories
         {
             using var db = DBTodoConn();
             return await db.QueryAsync<TodoItem>("SELECT * FROM TodoItems");
+
         }
 
         public async Task<TodoItem> GetTodoByIdAsync(int id)
         {
             using var db = DBTodoConn();
-            return await db.QueryFirstOrDefaultAsync<TodoItem>("SELECT * FROM TodoItems WHERE Id = @Id", new { Id = id });
+            var todoItem = await db.QueryFirstOrDefaultAsync<TodoItem>("SELECT * FROM TodoItems WHERE Id = @Id", new { Id = id });
+            return todoItem;
         }
 
         public async Task<TodoItem> UpdateTodoAsync(TodoItem item)

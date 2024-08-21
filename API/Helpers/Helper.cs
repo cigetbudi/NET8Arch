@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using FluentValidation;
+using FluentValidation.Results;
 namespace API.Helpers
 {
     public static class Helper
@@ -70,5 +72,35 @@ namespace API.Helpers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
+
+        public static string ExtractValidationErrors(ValidationResult validationResult)
+        {
+            // Combine each validation error into a single string with property name and error message
+            var errorMessages = validationResult.Errors
+                .Select(e => $" Kolom {e.PropertyName} : {e.ErrorMessage}")
+                .ToArray();
+
+            // Join the error messages with a comma separator
+            return string.Join(", ", errorMessages);
+        }
+
+        public static APIResponse<T> CreateResponse<T>(T? data, string? ex)
+        {
+            var response = new APIResponse<T>
+            {
+                Data = data,
+                StatusCode = string.IsNullOrEmpty(ex) ? "00" : "99",
+                StatusDescription = string.IsNullOrEmpty(ex) ? "Success" : "Error"
+            };
+
+            if (!string.IsNullOrEmpty(ex))
+            {
+                response.ErrorDetails = new string[] { ex };
+            }
+
+            return response;
+        }
+
+
     }
 }
